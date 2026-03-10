@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>HodlEye — AI Portfolio Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --gold:#F0B90B;--gold2:#ffd740;
+  --bg:#07090C;--s1:#0D1018;--s2:#131720;--s3:#1a2030;
+  --border:#1e2636;--text:#dde3f0;--muted:#4a5568;--muted2:#6b7a96;
+  --green:#0ecb81;--red:#f6465d;--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100%;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 10% 10%,rgba(240,185,11,.05),transparent 55%),radial-gradient(ellipse at 90% 90%,rgba(246,70,93,.03),transparent 55%);pointer-events:none;z-index:0;}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:12px;padding:0 16px;height:56px;border-bottom:1px solid var(--border);background:rgba(7,9,12,.96);backdrop-filter:blur(16px);}
+.logo{display:flex;align-items:center;gap:8px;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:1px;color:var(--text);}
+.logo-icon{width:28px;height:28px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.logo em{color:var(--gold);font-style:normal;}
+.hd-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.live-pill{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--green);}
+.live-pill::before{content:'';width:5px;height:5px;background:var(--green);border-radius:50%;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.bnb-pill{display:none;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:.72rem;}
+.bnb-pill .sym{color:var(--gold);}.bnb-pill .chg{color:var(--green);}
+@media(min-width:480px){.bnb-pill{display:flex;}}
+.connect-btn{background:var(--gold);color:#000;border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;white-space:nowrap;}
+.connect-btn:active{transform:scale(.97);}
+
+/* PAGE */
+.page{position:relative;z-index:1;}
+@media(min-width:769px){
+  .page{display:grid;grid-template-columns:1fr 380px;align-items:start;}
+  .left-col{overflow-y:auto;max-height:calc(100vh - 56px);}
+  .right-col{border-left:1px solid var(--border);height:calc(100vh - 56px);display:flex;flex-direction:column;overflow:hidden;}
+}
+
+/* TABS */
+.tabs{display:flex;gap:5px;padding:14px 14px 0;overflow-x:auto;flex-shrink:0;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{background:transparent;border:1px solid var(--border);color:var(--muted2);padding:6px 14px;border-radius:20px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.15s;}
+.tab-btn.active,.tab-btn:hover{background:rgba(240,185,11,.08);border-color:rgba(240,185,11,.25);color:var(--gold);}
+.tab-btn.roast-tab{border-color:rgba(246,70,93,.3);color:var(--red);}
+.tab-btn.roast-tab.active,.tab-btn.roast-tab:hover{background:rgba(246,70,93,.08);border-color:var(--red);color:var(--red);}
+
+/* VIEWS */
+.view{display:none;padding:14px;padding-bottom:90px;animation:fadeIn .2s ease;}
+.view.active{display:block;}
+@media(min-width:769px){.view{padding-bottom:20px;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* SCORE BANNER */
+.score-banner{background:linear-gradient(135deg,rgba(240,185,11,.1),rgba(240,185,11,.03));border:1px solid rgba(240,185,11,.2);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;margin-bottom:14px;}
+.score-circle{width:50px;height:50px;border-radius:50%;background:conic-gradient(var(--gold) 302deg,var(--s3) 302deg);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+.score-circle::before{content:'';position:absolute;width:38px;height:38px;background:var(--bg);border-radius:50%;}
+.score-num{position:relative;z-index:1;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--gold);}
+.score-info{flex:1;min-width:0;}
+.score-title{font-weight:700;font-size:.9rem;}
+.score-sub{font-size:.7rem;color:var(--muted2);margin-top:2px;}
+.score-badge{background:rgba(14,203,129,.12);color:var(--green);font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+@media(min-width:600px){.stats-grid{grid-template-columns:repeat(4,1fr);}}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;animation:up .35s ease both;}
+.stat-card:nth-child(1){animation-delay:.05s}.stat-card:nth-child(2){animation-delay:.1s}
+.stat-card:nth-child(3){animation-delay:.15s}.stat-card:nth-child(4){animation-delay:.2s}
+.stat-label{font-size:.63rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.stat-val{font-family:'DM Mono',monospace;font-size:1.15rem;}
+.stat-chg{font-size:.7rem;font-weight:600;margin-top:3px;}
+.up{color:var(--green);}.down{color:var(--red);}
+
+/* BNB SPOTLIGHT */
+.bnb-spot{background:linear-gradient(135deg,rgba(240,185,11,.07),rgba(240,185,11,.02));border:1px solid rgba(240,185,11,.18);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;}
+.bnb-spot-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.bnb-icon{width:28px;height:28px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;color:#000;flex-shrink:0;}
+.bnb-spot-title{font-weight:700;font-size:.86rem;}
+.bnb-spot-sub{font-size:.67rem;color:var(--muted2);}
+.bnb-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(min-width:480px){.bnb-metrics{grid-template-columns:repeat(4,1fr);}}
+.bnb-m{background:rgba(0,0,0,.3);border:1px solid rgba(240,185,11,.07);border-radius:8px;padding:10px 11px;}
+.bm-label{font-size:.6rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.bm-val{font-family:'DM Mono',monospace;font-size:.9rem;}
+.bm-sub{font-size:.65rem;color:var(--muted2);margin-top:2px;}
+
+/* HOLDINGS */
+.holdings-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+.holdings-hd{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;}
+.holdings-title{font-weight:700;font-size:.86rem;}
+.filter-row{display:flex;gap:5px;}
+.fbtn{background:transparent;border:1px solid var(--border);color:var(--muted2);padding:4px 10px;border-radius:6px;font-size:.7rem;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:.15s;}
+.fbtn.active,.fbtn:hover{background:rgba(240,185,11,.07);border-color:rgba(240,185,11,.25);color:var(--gold);}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;min-width:500px;}
+thead th{text-align:left;font-size:.58rem;color:var(--muted);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:9px 16px;border-bottom:1px solid var(--border);white-space:nowrap;}
+thead th:not(:first-child){text-align:right;}
+tbody tr{border-bottom:1px solid rgba(30,38,54,.6);cursor:pointer;transition:background .12s;}
+tbody tr:hover{background:rgba(240,185,11,.025);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:11px 16px;font-size:.8rem;font-weight:500;text-align:right;white-space:nowrap;}
+td:first-child{text-align:left;}
+.asset-cell{display:flex;align-items:center;gap:9px;}
+.a-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;flex-shrink:0;}
+.a-name{font-weight:700;font-size:.82rem;}.a-sym{font-size:.65rem;color:var(--muted2);font-family:'DM Mono',monospace;margin-top:1px;}
+.mono{font-family:'DM Mono',monospace;}
+.spark{display:flex;align-items:flex-end;gap:2px;height:18px;justify-content:flex-end;}
+.spark-b{width:3px;border-radius:2px;}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px;}
+@media(min-width:560px){.two-col{grid-template-columns:1fr 1fr;}}
+.mini-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
+.mini-title{font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:11px;}
+.alloc-list{display:flex;flex-direction:column;gap:8px;}
+.alloc-row{display:flex;align-items:center;gap:8px;}
+.alloc-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
+.alloc-name{font-size:.76rem;font-weight:600;width:36px;}
+.alloc-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.alloc-bar-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.16,1,.3,1);}
+.alloc-pct{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted2);width:34px;text-align:right;}
+.txn-list{display:flex;flex-direction:column;gap:6px;}
+.txn-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border-radius:7px;}
+.txn-type{font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace;flex-shrink:0;}
+.txn-type.buy{background:rgba(14,203,129,.12);color:var(--green);}
+.txn-type.sell{background:rgba(246,70,93,.12);color:var(--red);}
+.txn-name{font-weight:600;flex:1;font-size:.78rem;}
+.txn-amt{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted2);}
+
+/* MARKETS */
+.market-list{display:flex;flex-direction:column;gap:8px;}
+.market-row{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;display:flex;align-items:center;gap:11px;transition:border-color .15s;}
+.market-row:hover{border-color:rgba(240,185,11,.2);}
+.m-name{font-weight:700;font-size:.86rem;}.m-sym{font-size:.66rem;color:var(--muted2);font-family:'DM Mono',monospace;}
+.m-right{margin-left:auto;text-align:right;}
+.m-price{font-family:'DM Mono',monospace;font-size:.88rem;}
+.m-chg{font-size:.72rem;font-weight:600;margin-top:2px;}
+
+/* EARN */
+.earn-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+@media(min-width:480px){.earn-grid{grid-template-columns:1fr 1fr;}}
+.earn-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;transition:border-color .2s;}
+.earn-card:hover{border-color:rgba(240,185,11,.25);}
+.earn-icon{font-size:1.6rem;margin-bottom:8px;}
+.earn-name{font-weight:700;font-size:.88rem;margin-bottom:4px;}
+.earn-desc{font-size:.72rem;color:var(--muted2);line-height:1.5;margin-bottom:10px;}
+.earn-apy{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--green);}
+.earn-apy-label{font-size:.62rem;color:var(--muted);font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+.earn-btn{margin-top:12px;width:100%;background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.25);color:var(--gold);padding:9px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;transition:.15s;}
+.earn-btn:hover{background:rgba(240,185,11,.18);}
+
+/* ALERTS */
+.alert-form{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;}
+.form-title{font-weight:700;font-size:.88rem;margin-bottom:13px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px;}
+@media(max-width:380px){.form-row{grid-template-columns:1fr;}}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:.65rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.form-select,.form-input{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;padding:9px 11px;border-radius:8px;outline:none;width:100%;transition:border-color .2s;}
+.form-select:focus,.form-input:focus{border-color:rgba(240,185,11,.35);}
+.form-select option{background:var(--s2);}
+.submit-btn{width:100%;background:var(--gold);color:#000;border:none;border-radius:8px;padding:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;margin-top:6px;}
+.submit-btn:active{transform:scale(.98);}
+.alerts-list{display:flex;flex-direction:column;gap:7px;}
+.alert-row{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;gap:9px;transition:.25s;}
+.alert-text{flex:1;font-size:.8rem;font-weight:600;}
+.alert-val{font-family:'DM Mono',monospace;font-size:.76rem;color:var(--gold);}
+.alert-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.95rem;padding:2px 4px;}
+.alert-del:hover{color:var(--red);}
+
+/* ══ ROAST VIEW ══ */
+.roast-view{padding:14px;padding-bottom:90px;}
+@media(min-width:769px){.roast-view{padding-bottom:20px;}}
+
+.roast-hero{text-align:center;padding:28px 16px 20px;background:linear-gradient(135deg,rgba(246,70,93,.08),rgba(246,70,93,.02));border:1px solid rgba(246,70,93,.2);border-radius:var(--r);margin-bottom:16px;position:relative;overflow:hidden;}
+.roast-hero::before{content:'🔥';position:absolute;font-size:8rem;opacity:.04;top:-10px;right:-10px;pointer-events:none;}
+.roast-title{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:2px;color:var(--red);line-height:1;}
+.roast-sub{font-size:.82rem;color:var(--muted2);margin-top:6px;line-height:1.5;}
+.roast-warning{display:inline-block;margin-top:10px;background:rgba(246,70,93,.1);border:1px solid rgba(246,70,93,.2);border-radius:20px;padding:4px 14px;font-size:.72rem;color:var(--red);font-weight:600;}
+
+.roast-btn{width:100%;background:linear-gradient(135deg,#f6465d,#c0392b);color:#fff;border:none;border-radius:var(--r);padding:16px;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;cursor:pointer;margin-bottom:16px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 20px rgba(246,70,93,.25);}
+.roast-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(246,70,93,.35);}
+.roast-btn:active{transform:translateY(0);}
+.roast-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* Roast result card */
+.roast-result{display:none;background:var(--s1);border:2px solid rgba(246,70,93,.3);border-radius:var(--r);overflow:hidden;animation:roastIn .4s cubic-bezier(.16,1,.3,1);}
+@keyframes roastIn{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.roast-result.show{display:block;}
+.roast-result-hd{background:linear-gradient(135deg,rgba(246,70,93,.15),rgba(246,70,93,.05));padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(246,70,93,.15);}
+.roast-avatar{width:36px;height:36px;background:linear-gradient(135deg,#f6465d,#c0392b);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.roast-ai-name{font-weight:700;font-size:.88rem;}
+.roast-ai-mode{font-size:.68rem;color:var(--red);font-weight:600;margin-top:1px;}
+.roast-body{padding:16px;}
+.roast-text{font-size:.88rem;line-height:1.7;color:var(--text);}
+.roast-text strong{color:var(--red);font-weight:700;}
+.roast-text .coin{display:inline-block;background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:1px 7px;font-family:'DM Mono',monospace;font-size:.76rem;margin:0 2px;}
+.roast-score-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+.roast-score-item{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.rsi-label{font-size:.6rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.rsi-val{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;}
+.roast-share{margin-top:14px;width:100%;background:var(--s2);border:1px solid rgba(246,70,93,.25);color:var(--red);padding:10px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;transition:.15s;}
+.roast-share:hover{background:rgba(246,70,93,.08);}
+
+/* Roast history */
+.roast-history{margin-top:16px;}
+.rh-title{font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.rh-list{display:flex;flex-direction:column;gap:8px;}
+.rh-item{background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-size:.8rem;color:var(--muted2);line-height:1.5;border-left:3px solid var(--red);}
+
+/* CHAT PANEL */
+.chat-section{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+@media(max-width:768px){.chat-section{padding:14px;padding-bottom:90px;}}
+.chat-hd{background:var(--s1);border:1px solid var(--border);border-radius:var(--r) var(--r) 0 0;padding:13px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+@media(min-width:769px){.chat-hd{border-radius:0;border-left:none;border-right:none;border-top:none;}}
+.eye-av{width:32px;height:32px;background:linear-gradient(135deg,#F0B90B,#ff8c00);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;box-shadow:0 3px 10px rgba(240,185,11,.2);}
+.eye-name{font-weight:700;font-size:.86rem;}
+.eye-persona{font-size:.66rem;color:var(--gold);font-weight:600;margin-top:1px;}
+.score-btn{margin-left:auto;background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.2);color:var(--gold);border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+
+.persona-row{display:flex;gap:5px;padding:7px 12px;background:var(--s1);border-left:1px solid var(--border);border-right:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
+@media(min-width:769px){.persona-row{border-left:none;border-right:none;}}
+.persona-row::-webkit-scrollbar{display:none;}
+.persona-btn{background:transparent;border:1px solid var(--border);color:var(--muted2);padding:4px 10px;border-radius:14px;font-size:.67rem;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s;flex-shrink:0;}
+.persona-btn.active,.persona-btn:hover{border-color:rgba(240,185,11,.3);color:var(--gold);background:rgba(240,185,11,.07);}
+
+.chat-msgs{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:10px;background:var(--s1);border-left:1px solid var(--border);border-right:1px solid var(--border);scroll-behavior:smooth;min-height:200px;}
+@media(min-width:769px){.chat-msgs{border-left:none;border-right:none;}}
+.chat-msgs::-webkit-scrollbar{width:3px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--border);}
+.msg{display:flex;gap:7px;animation:msgIn .2s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse;}
+.msg-av{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0;margin-top:2px;}
+.msg.ai .msg-av{background:linear-gradient(135deg,#F0B90B,#ff8c00);}
+.msg.user .msg-av{background:var(--s3);border:1px solid var(--border);}
+.msg-bubble{max-width:86%;padding:9px 12px;border-radius:10px;font-size:.8rem;line-height:1.55;}
+.msg.ai .msg-bubble{background:var(--s2);border:1px solid var(--border);border-radius:3px 10px 10px 10px;}
+.msg.user .msg-bubble{background:rgba(240,185,11,.1);border:1px solid rgba(240,185,11,.18);border-radius:10px 3px 10px 10px;}
+.msg-bubble strong{color:var(--gold);font-weight:700;}
+.tag{display:inline-block;padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;font-size:.7rem;}
+.tag.g{background:rgba(14,203,129,.12);color:var(--green);}
+.tag.r{background:rgba(246,70,93,.12);color:var(--red);}
+.tag.y{background:rgba(240,185,11,.12);color:var(--gold);}
+.typing{display:flex;gap:4px;align-items:center;padding:3px 0;}
+.tdot{width:5px;height:5px;background:var(--gold);border-radius:50%;animation:td 1.1s ease-in-out infinite;}
+.tdot:nth-child(2){animation-delay:.18s}.tdot:nth-child(3){animation-delay:.36s}
+@keyframes td{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-5px);opacity:1}}
+.chips{padding:7px 11px;display:flex;flex-wrap:wrap;gap:5px;background:var(--s1);border-left:1px solid var(--border);border-right:1px solid var(--border);flex-shrink:0;}
+@media(min-width:769px){.chips{border-left:none;border-right:none;}}
+.chip{background:transparent;border:1px solid var(--border);color:var(--muted2);padding:4px 9px;border-radius:13px;font-size:.67rem;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:.15s;}
+.chip:hover{border-color:rgba(240,185,11,.3);color:var(--gold);background:rgba(240,185,11,.06);}
+.chat-in-area{display:flex;gap:7px;padding:9px 11px;background:var(--s1);border:1px solid var(--border);border-radius:0 0 var(--r) var(--r);align-items:flex-end;flex-shrink:0;}
+@media(min-width:769px){.chat-in-area{border-radius:0;border-left:none;border-right:none;border-bottom:none;}}
+.chat-in{flex:1;background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;padding:8px 11px;border-radius:8px;resize:none;outline:none;line-height:1.4;min-height:38px;max-height:90px;transition:border-color .2s;}
+.chat-in:focus{border-color:rgba(240,185,11,.3);}
+.chat-in::placeholder{color:var(--muted);}
+.send-btn{background:var(--gold);color:#000;border:none;width:38px;height:38px;border-radius:8px;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.send-btn:active{transform:scale(.94);}
+.send-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* BOTTOM NAV */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(7,9,12,.97);border-top:1px solid var(--border);backdrop-filter:blur(16px);}
+@media(max-width:768px){.bottom-nav{display:block;}}
+.bnav-inner{display:flex;justify-content:space-around;padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));}
+.bn-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;cursor:pointer;color:var(--muted2);font-size:.56rem;font-weight:600;border:none;background:transparent;font-family:'DM Sans',sans-serif;}
+.bn-btn .bi{font-size:1.1rem;}
+.bn-btn.active{color:var(--gold);}
+.bn-btn.roast-nav.active,.bn-btn.roast-nav:hover{color:var(--red)!important;}
+
+/* SCORE MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center;padding:16px;}
+.overlay.show{display:flex;}
+.modal{background:var(--s1);border:1px solid rgba(240,185,11,.2);border-radius:18px;padding:22px;width:100%;max-width:420px;animation:mIn .25s cubic-bezier(.16,1,.3,1);max-height:90vh;overflow-y:auto;}
+@keyframes mIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;}
+.modal-sub{font-size:.74rem;color:var(--muted2);margin-top:2px;margin-bottom:16px;}
+.big-score{font-family:'Bebas Neue',sans-serif;font-size:4.5rem;line-height:1;color:var(--gold);text-align:center;margin:6px 0 3px;}
+.score-cats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.sc-cat{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+.sc-cat-name{font-size:.62rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.sc-cat-val{font-family:'DM Mono',monospace;font-size:.95rem;margin-top:3px;}
+.sc-cat-bar{height:3px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;}
+.sc-cat-fill{height:100%;border-radius:2px;}
+.ai-advice{margin-top:13px;background:rgba(240,185,11,.05);border:1px solid rgba(240,185,11,.12);border-radius:9px;padding:11px;font-size:.77rem;color:var(--muted2);line-height:1.6;}
+.modal-close{display:block;width:100%;margin-top:14px;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:.82rem;}
+.modal-close:hover{border-color:var(--gold);color:var(--gold);}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:.8rem;font-weight:600;opacity:0;transition:.3s;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media(min-width:769px){.toast{bottom:24px;}}
+</style>
+</head>
+<body>
+
+<!-- SCORE MODAL -->
+<div class="overlay" id="scoreOverlay">
+  <div class="modal">
+    <div class="modal-title">🏆 Portfolio Score</div>
+    <div class="modal-sub">AI-powered analysis across 4 dimensions</div>
+    <div class="big-score">84</div>
+    <div style="text-align:center;color:var(--green);font-weight:700;font-size:.85rem;">STRONG PORTFOLIO</div>
+    <div style="text-align:center;font-size:.72rem;color:var(--muted2);margin-top:3px;">Top 18% of HodlEye users this week</div>
+    <div class="score-cats" id="scoreCats"></div>
+    <div class="ai-advice">💡 Your BTC allocation at 54% is dominant — consider trimming 5–10% into <strong>BNB Earn</strong> for 4.8% passive yield. SOL is your star performer today at ▲8.4%. Overall diversification score of 78 suggests adding 1–2 more assets could reduce portfolio risk significantly.</div>
+    <button class="modal-close" onclick="closeScore()">Close</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="logo"><div class="logo-icon">👁️</div>Hodl<em>Eye</em></div>
+  <div class="hd-right">
+    <div class="live-pill">LIVE</div>
+    <div class="bnb-pill"><span class="sym">BNB</span><span>$612.40</span><span class="chg">▲2.1%</span></div>
+    <button class="connect-btn" onclick="showToast('Wallet connect coming in v2! 🔜')">Connect Wallet</button>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- LEFT COL -->
+  <div class="left-col">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchView('portfolio',this)">📊 Portfolio</button>
+      <button class="tab-btn" onclick="switchView('markets',this)">📈 Markets</button>
+      <button class="tab-btn" onclick="switchView('earn',this)">💎 BNB Earn</button>
+      <button class="tab-btn" onclick="switchView('alerts',this)">🔔 Alerts</button>
+      <button class="tab-btn roast-tab" onclick="switchView('roast',this)">🔥 Roast Me</button>
+    </div>
+
+    <!-- PORTFOLIO -->
+    <div class="view active" id="view-portfolio">
+      <div class="score-banner" onclick="openScore()">
+        <div class="score-circle"><div class="score-num">84</div></div>
+        <div class="score-info"><div class="score-title">AI Portfolio Score</div><div class="score-sub">Tap for full breakdown & AI advice →</div></div>
+        <div class="score-badge">STRONG</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-val">$48,612</div><div class="stat-chg up">▲ +2.71% today</div></div>
+        <div class="stat-card"><div class="stat-label">Total P&L</div><div class="stat-val">+$6,840</div><div class="stat-chg up">▲ +16.4% all-time</div></div>
+        <div class="stat-card"><div class="stat-label">24h Volume</div><div class="stat-val">$3,210</div><div class="stat-chg down">▼ -8.3% vs yesterday</div></div>
+        <div class="stat-card"><div class="stat-label">Assets</div><div class="stat-val">7</div><div class="stat-chg up">Across 3 chains</div></div>
+      </div>
+      <div class="bnb-spot">
+        <div class="bnb-spot-hd"><div class="bnb-icon">B</div><div><div class="bnb-spot-title">BNB Chain Spotlight</div><div class="bnb-spot-sub">Your home chain — live metrics</div></div></div>
+        <div class="bnb-metrics">
+          <div class="bnb-m"><div class="bm-label">BNB Price</div><div class="bm-val" style="color:var(--gold)">$612.40</div><div class="bm-sub up">▲ 3.1%</div></div>
+          <div class="bnb-m"><div class="bm-label">Your BNB</div><div class="bm-val">8.5 BNB</div><div class="bm-sub">≈ $5,205</div></div>
+          <div class="bnb-m"><div class="bm-label">Earn APY</div><div class="bm-val" style="color:var(--green)">4.8%</div><div class="bm-sub">Flexible</div></div>
+          <div class="bnb-m"><div class="bm-label">BSC Gas</div><div class="bm-val">0.8 Gwei</div><div class="bm-sub" style="color:var(--green)">🟢 Low</div></div>
+        </div>
+      </div>
+      <div class="holdings-card">
+        <div class="holdings-hd">
+          <div class="holdings-title">Holdings</div>
+          <div class="filter-row">
+            <button class="fbtn active" onclick="filterH('all',this)">All</button>
+            <button class="fbtn" onclick="filterH('gainers',this)">Gainers</button>
+            <button class="fbtn" onclick="filterH('losers',this)">Losers</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Asset</th><th>Price</th><th>24h</th><th>Amount</th><th>Value</th><th>7d</th></tr></thead><tbody id="htbody"></tbody></table></div>
+      </div>
+      <div class="two-col">
+        <div class="mini-card"><div class="mini-title">Allocation</div><div class="alloc-list" id="allocList"></div></div>
+        <div class="mini-card">
+          <div class="mini-title">Recent Transactions</div>
+          <div class="txn-list">
+            <div class="txn-row"><span class="txn-type buy">BUY</span><span class="txn-name">BNB</span><span class="txn-amt">+0.5 · $306</span></div>
+            <div class="txn-row"><span class="txn-type sell">SELL</span><span class="txn-name">ETH</span><span class="txn-amt">-0.2 · $620</span></div>
+            <div class="txn-row"><span class="txn-type buy">BUY</span><span class="txn-name">SOL</span><span class="txn-amt">+5 · $710</span></div>
+            <div class="txn-row"><span class="txn-type buy">BUY</span><span class="txn-name">BTC</span><span class="txn-amt">+0.01 · $830</span></div>
+            <div class="txn-row"><span class="txn-type sell">SELL</span><span class="txn-name">MATIC</span><span class="txn-amt">-200 · $148</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MARKETS -->
+    <div class="view" id="view-markets">
+      <div class="market-list" id="marketList"></div>
+    </div>
+
+    <!-- EARN -->
+    <div class="view" id="view-earn">
+      <div class="earn-grid">
+        <div class="earn-card"><div class="earn-icon">💰</div><div class="earn-name">BNB Flexible Savings</div><div class="earn-desc">Earn yield on your BNB with no lock-up. Withdraw anytime.</div><div class="earn-apy">4.8%</div><div class="earn-apy-label">APY</div><button class="earn-btn" onclick="showToast('Redirecting to Binance Earn... 🚀')">Start Earning</button></div>
+        <div class="earn-card"><div class="earn-icon">🔒</div><div class="earn-name">BNB Locked 30-Day</div><div class="earn-desc">Lock BNB for 30 days for a higher fixed yield.</div><div class="earn-apy">7.2%</div><div class="earn-apy-label">APY</div><button class="earn-btn" onclick="showToast('Redirecting to Binance Earn... 🚀')">Start Earning</button></div>
+        <div class="earn-card"><div class="earn-icon">🌊</div><div class="earn-name">BNB Liquidity Pool</div><div class="earn-desc">Provide BNB/USDT liquidity and earn trading fees.</div><div class="earn-apy">12.4%</div><div class="earn-apy-label">APY (variable)</div><button class="earn-btn" onclick="showToast('Redirecting to PancakeSwap... 🥞')">Add Liquidity</button></div>
+        <div class="earn-card"><div class="earn-icon">🎯</div><div class="earn-name">Auto-Compound Vault</div><div class="earn-desc">Auto-reinvest earnings daily for maximum compounding.</div><div class="earn-apy">9.1%</div><div class="earn-apy-label">APY (compounded)</div><button class="earn-btn" onclick="showToast('Redirecting to Vault... 💰')">Deposit Now</button></div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="view" id="view-alerts">
+      <div class="alert-form">
+        <div class="form-title">🔔 Create Price Alert</div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Asset</div><select class="form-select" id="alertAsset"><option>BTC</option><option>ETH</option><option selected>BNB</option><option>SOL</option><option>MATIC</option><option>LINK</option><option>DOT</option></select></div>
+          <div class="form-group"><div class="form-label">Condition</div><select class="form-select" id="alertCond"><option>Price above</option><option>Price below</option><option>Change % above</option><option>Change % below</option></select></div>
+        </div>
+        <div class="form-group" style="margin-bottom:9px;"><div class="form-label">Target Value</div><input class="form-input" id="alertVal" type="number" placeholder="e.g. 650"/></div>
+        <button class="submit-btn" onclick="createAlert()">+ Create Alert</button>
+      </div>
+      <div class="alerts-list" id="alertsList">
+        <div class="alert-row"><span style="font-size:.95rem">🔔</span><span class="alert-text">BTC — Price above</span><span class="alert-val">$90,000</span><button class="alert-del" onclick="removeAlert(this)">🗑️</button></div>
+        <div class="alert-row"><span style="font-size:.95rem">🔔</span><span class="alert-text">ETH — Price below</span><span class="alert-val">$2,800</span><button class="alert-del" onclick="removeAlert(this)">🗑️</button></div>
+      </div>
+    </div>
+
+    <!-- ROAST VIEW -->
+    <div class="view" id="view-roast">
+      <div class="roast-hero">
+        <div class="roast-title">🔥 ROAST MY PORTFOLIO 🔥</div>
+        <div class="roast-sub">Eye AI will absolutely destroy your investment decisions.<br>No mercy. No sugarcoating. Pure savage energy.</div>
+        <div class="roast-warning">⚠️ Warning: may cause emotional damage</div>
+      </div>
+
+      <button class="roast-btn" id="roastBtn" onclick="doRoast()">
+        <span>🎤</span> ROAST ME, I CAN TAKE IT
+      </button>
+
+      <div class="roast-result" id="roastResult">
+        <div class="roast-result-hd">
+          <div class="roast-avatar">🎤</div>
+          <div><div class="roast-ai-name">Eye AI — Roast Mode</div><div class="roast-ai-mode">🔥 No mercy activated</div></div>
+        </div>
+        <div class="roast-body">
+          <div class="roast-text" id="roastText"></div>
+          <div class="roast-score-row">
+            <div class="roast-score-item"><div class="rsi-label">Degen Score</div><div class="rsi-val" id="degenScore" style="color:var(--red)">-</div></div>
+            <div class="roast-score-item"><div class="rsi-label">NGMI Risk</div><div class="rsi-val" id="ngmiScore" style="color:var(--gold)">-</div></div>
+            <div class="roast-score-item"><div class="rsi-label">Boomer Level</div><div class="rsi-val" id="boomerScore" style="color:var(--green)">-</div></div>
+          </div>
+          <button class="roast-share" onclick="shareRoast()">📤 Share this roast</button>
+        </div>
+      </div>
+
+      <div class="roast-history" id="roastHistory" style="display:none">
+        <div class="rh-title">Previous Roasts</div>
+        <div class="rh-list" id="rhList"></div>
+      </div>
+    </div>
+
+  </div><!-- /left-col -->
+
+  <!-- RIGHT COL -->
+  <div class="right-col">
+    <div class="chat-section">
+      <div class="chat-hd">
+        <div class="eye-av">👁️</div>
+        <div><div class="eye-name">Eye AI</div><div class="eye-persona" id="personaLabel">🔥 Degen Mode</div></div>
+        <button class="score-btn" onclick="openScore()">🏆 Score: 84</button>
+      </div>
+      <div class="persona-row">
+        <button class="persona-btn active" onclick="setPersona(this,'🔥 Degen Mode',0)">🔥 Degen</button>
+        <button class="persona-btn" onclick="setPersona(this,'🦉 Oracle',1)">🦉 Oracle</button>
+        <button class="persona-btn" onclick="setPersona(this,'📚 Teacher',2)">📚 Teacher</button>
+        <button class="persona-btn" onclick="setPersona(this,'📊 Analyst',3)">📊 Analyst</button>
+      </div>
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="msg ai">
+          <div class="msg-av">👁️</div>
+          <div class="msg-bubble">Yo! 👁️ <strong>Eye AI</strong> on watch.<br><br>Portfolio <span class="tag g">▲ 2.71%</span> today — SOL is <span class="tag g">ripping +8.4%</span> and carrying the whole bag. Score is <strong>84/100</strong> <span class="tag y">STRONG</span>. LFG 🚀<br><br>Feeling brave? Hit <strong>🔥 Roast Me</strong> and I'll tear your bags apart 😂</div>
+        </div>
+      </div>
+      <div class="chips" id="chips">
+        <button class="chip" onclick="sendChip(this)">📊 Full breakdown</button>
+        <button class="chip" onclick="sendChip(this)">🔥 Best performers</button>
+        <button class="chip" onclick="sendChip(this)">⚠️ Risk analysis</button>
+        <button class="chip" onclick="sendChip(this)">💡 Rebalance tips</button>
+        <button class="chip" onclick="sendChip(this)">💎 BNB strategy</button>
+        <button class="chip" onclick="sendChip(this)">🎯 What should I do?</button>
+      </div>
+      <div class="chat-in-area">
+        <textarea class="chat-in" id="chatIn" placeholder="Ask Eye AI anything…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bnav-inner">
+    <button class="bn-btn active" id="bn-portfolio" onclick="switchView('portfolio',null,this)"><span class="bi">📊</span>Portfolio</button>
+    <button class="bn-btn" id="bn-markets" onclick="switchView('markets',null,this)"><span class="bi">📈</span>Markets</button>
+    <button class="bn-btn" id="bn-earn" onclick="switchView('earn',null,this)"><span class="bi">💎</span>Earn</button>
+    <button class="bn-btn" id="bn-alerts" onclick="switchView('alerts',null,this)"><span class="bi">🔔</span>Alerts</button>
+    <button class="bn-btn roast-nav" id="bn-roast" onclick="switchView('roast',null,this)"><span class="bi">🔥</span>Roast Me</button>
+  </div>
+</nav>
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+const holdings=[
+  {sym:'BTC',name:'Bitcoin', icon:'₿', color:'#F7931A',bg:'rgba(247,147,26,.15)',price:83200,chg:1.2, amt:0.32,val:26624,spark:[5,4,6,5,7,6,8]},
+  {sym:'ETH',name:'Ethereum',icon:'Ξ', color:'#627EEA',bg:'rgba(98,126,234,.15)',price:3100, chg:-0.8,amt:2.4, val:7440, spark:[7,6,5,6,4,5,5]},
+  {sym:'BNB',name:'BNB',     icon:'B', color:'#F0B90B',bg:'rgba(240,185,11,.15)',price:612,  chg:3.1, amt:8.5, val:5202, spark:[4,5,5,6,7,8,9]},
+  {sym:'SOL',name:'Solana',  icon:'◎', color:'#9945FF',bg:'rgba(153,69,255,.15)',price:142,  chg:8.4, amt:32,  val:4544, spark:[3,4,5,6,8,9,10]},
+  {sym:'MATIC',name:'Polygon',icon:'⬡',color:'#8247E5',bg:'rgba(130,71,229,.15)',price:0.74, chg:-2.3,amt:4200,val:3108, spark:[8,7,6,7,5,4,5]},
+  {sym:'LINK',name:'Chainlink',icon:'🔗',color:'#2A5ADA',bg:'rgba(42,90,218,.15)',price:14.2,chg:0.5, amt:110, val:1562, spark:[5,6,5,6,6,7,7]},
+  {sym:'DOT', name:'Polkadot',icon:'●',color:'#E6007A',bg:'rgba(230,0,122,.15)', price:8.8,  chg:-1.1,amt:16,  val:141,  spark:[6,5,6,4,5,4,4]},
+];
+const clrs=['#F7931A','#627EEA','#F0B90B','#9945FF','#8247E5','#2A5ADA','#E6007A'];
+const total=holdings.reduce((s,h)=>s+h.val,0);
+
+// Render holdings
+function renderH(filter){
+  const tb=document.getElementById('htbody');tb.innerHTML='';
+  const d=filter==='gainers'?holdings.filter(h=>h.chg>0):filter==='losers'?holdings.filter(h=>h.chg<0):holdings;
+  d.forEach(h=>{
+    const u=h.chg>=0;
+    const bars=h.spark.map(v=>`<div class="spark-b" style="height:${v*2+2}px;background:${u?'var(--green)':'var(--red)'};opacity:.6"></div>`).join('');
+    tb.innerHTML+=`<tr><td><div class="asset-cell"><div class="a-icon" style="background:${h.bg};color:${h.color}">${h.icon}</div><div><div class="a-name">${h.name}</div><div class="a-sym">${h.sym}</div></div></div></td><td class="mono">$${h.price.toLocaleString()}</td><td class="${u?'up':'down'} mono">${u?'▲':'▼'}${Math.abs(h.chg)}%</td><td class="mono" style="color:var(--muted2)">${h.amt.toLocaleString()} ${h.sym}</td><td class="mono">$${h.val.toLocaleString()}</td><td><div class="spark">${bars}</div></td></tr>`;
+  });
+}
+renderH('all');
+function filterH(f,btn){document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderH(f);}
+
+// Render allocation
+const al=document.getElementById('allocList');
+holdings.slice(0,6).forEach((h,i)=>{
+  const p=((h.val/total)*100).toFixed(1);
+  al.innerHTML+=`<div class="alloc-row"><div class="alloc-dot" style="background:${clrs[i]}"></div><div class="alloc-name">${h.sym}</div><div class="alloc-bar-wrap"><div class="alloc-bar-fill" data-w="${p}" style="background:${clrs[i]};width:0%"></div></div><div class="alloc-pct">${p}%</div></div>`;
+});
+setTimeout(()=>document.querySelectorAll('.alloc-bar-fill').forEach(el=>el.style.width=el.dataset.w+'%'),400);
+
+// Markets
+const ml=document.getElementById('marketList');
+holdings.forEach(h=>{
+  const u=h.chg>=0;
+  ml.innerHTML+=`<div class="market-row"><div class="a-icon" style="background:${h.bg};color:${h.color}">${h.icon}</div><div><div class="m-name">${h.name}</div><div class="m-sym">${h.sym}/USDT</div></div><div class="m-right"><div class="m-price mono">$${h.price.toLocaleString()}</div><div class="m-chg ${u?'up':'down'}">${u?'▲':'▼'}${Math.abs(h.chg)}%</div></div></div>`;
+});
+
+// Score modal
+const cats=[{name:'Diversification',val:78,color:'#0ecb81'},{name:'Performance',val:91,color:'#F0B90B'},{name:'Risk Management',val:82,color:'#3b82f6'},{name:'BNB Exposure',val:85,color:'#F0B90B'}];
+document.getElementById('scoreCats').innerHTML=cats.map(c=>`<div class="sc-cat"><div class="sc-cat-name">${c.name}</div><div class="sc-cat-val" style="color:${c.color}">${c.val}/100</div><div class="sc-cat-bar"><div class="sc-cat-fill" style="width:${c.val}%;background:${c.color}"></div></div></div>`).join('');
+function openScore(){document.getElementById('scoreOverlay').classList.add('show');}
+function closeScore(){document.getElementById('scoreOverlay').classList.remove('show');}
+document.getElementById('scoreOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeScore();});
+
+// ── ROAST ENGINE ───────────────────────────────────────
+const roasts=[
+  {
+    text:`Alright, let's talk about your <span class="coin">BTC</span> obsession. 54.8% of your portfolio in one asset? That's not investing, that's a <strong>cry for help</strong>. Meanwhile your <span class="coin">DOT</span> bag is sitting at $141 like a forgotten parking ticket. And don't even get me started on <span class="coin">MATIC</span> — you're down 2.3% and still holding 4,200 tokens like they owe you rent. Your portfolio isn't diversified, it's <strong>a BTC shrine with some altcoin decorations</strong>. 😭`,
+    degen:'72/100',ngmi:'HIGH 🚨',boomer:'LOW ✅'
+  },
+  {
+    text:`Sir, your <span class="coin">DOT</span> position is $141. <strong>$141.</strong> That's not a position, that's a rounding error. You have more money in gas fees than in DOT. Meanwhile you're out here holding <span class="coin">MATIC</span> like it's 2021 and the metaverse is still a thing people care about. The good news? <span class="coin">SOL</span> is up 8.4% today, which means <strong>your one good decision is carrying your entire portfolio</strong>. You're basically a one-trick pony with a BTC hat on. 🎪`,
+    degen:'61/100',ngmi:'MEDIUM ⚠️',boomer:'MEDIUM 👴'
+  },
+  {
+    text:`Let me get this straight — you have <span class="coin">LINK</span> at $1,562 and <span class="coin">DOT</span> at $141, yet you won't put that money into <strong>BNB Earn at 4.8% APY</strong>? Your 8.5 BNB is just sitting there not earning a single penny. That's the financial equivalent of leaving cash on the sidewalk. Your portfolio score is 84 but your <strong>common sense score is dropping fast</strong>. The market is literally handing you free yield and you're ignoring it. 😤`,
+    degen:'55/100',ngmi:'LOW ✅',boomer:'HIGH 👴👴'
+  },
+  {
+    text:`Oh wow, a <span class="coin">BTC</span> maxi who also bought <span class="coin">SOL</span>, <span class="coin">ETH</span>, AND <span class="coin">MATIC</span>. So you couldn't decide if you were a Bitcoin purist or an altcoin degen, so you chose <strong>both, badly</strong>. Your biggest winner today is SOL and your biggest loser is also your second biggest bag (ETH, down 0.8%). You're basically hedging against yourself. At least your <strong>BNB is on the right chain</strong> — I'll give you that much. 🫡`,
+    degen:'80/100',ngmi:'MEDIUM ⚠️',boomer:'LOW ✅'
+  },
+  {
+    text:`Portfolio check: you have 7 assets but only 3 of them are doing anything meaningful. <span class="coin">BTC</span>, <span class="coin">ETH</span>, and <span class="coin">BNB</span> are 80% of your holdings — the other four are just <strong>portfolio decoration</strong>. Your <span class="coin">DOT</span> holding of $141 wouldn't even cover a decent dinner. And yet there you are, checking the charts every 20 minutes like the vibes are gonna change. Spoiler: <strong>the vibes are not changing for DOT</strong>. Either go big or go home. 🏠`,
+    degen:'68/100',ngmi:'MEDIUM ⚠️',boomer:'MEDIUM 👴'
+  },
+];
+
+let roastCount=0;
+let lastRoastText='';
+
+function doRoast(){
+  const btn=document.getElementById('roastBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span>🔥</span> Loading savage mode...';
+
+  setTimeout(()=>{
+    const roast=roasts[roastCount % roasts.length];
+    roastCount++;
+
+    // Save to history if not first
+    if(lastRoastText){
+      const hist=document.getElementById('roastHistory');
+      const list=document.getElementById('rhList');
+      hist.style.display='block';
+      const item=document.createElement('div');
+      item.className='rh-item';
+      item.innerHTML=lastRoastText.replace(/<[^>]*>/g,'').substring(0,120)+'...';
+      list.prepend(item);
+    }
+
+    document.getElementById('roastText').innerHTML=roast.text;
+    document.getElementById('degenScore').textContent=roast.degen;
+    document.getElementById('ngmiScore').textContent=roast.ngmi;
+    document.getElementById('boomerScore').textContent=roast.boomer;
+
+    const result=document.getElementById('roastResult');
+    result.classList.remove('show');
+    void result.offsetWidth;
+    result.classList.add('show');
+    result.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+    lastRoastText=roast.text;
+
+    btn.disabled=false;
+    btn.innerHTML='<span>🎤</span> ROAST ME AGAIN';
+  }, 1800);
+}
+
+function shareRoast(){
+  const text=`😂 Eye AI just roasted my crypto portfolio on HodlEye!\n\n"${document.getElementById('roastText').textContent.substring(0,100)}..."\n\nGet your portfolio roasted: hodleye.io 👁️ #HodlEye #CryptoRoast #BNBChain`;
+  if(navigator.share){
+    navigator.share({title:'My HodlEye Portfolio Roast',text});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>showToast('Roast copied! Paste it anywhere 😂'));
+  }
+}
+
+// ── TABS ──────────────────────────────────────────────
+function switchView(name,tabBtn,bnBtn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  if(tabBtn){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));tabBtn.classList.add('active');}
+  document.querySelectorAll('.bn-btn').forEach(b=>b.classList.remove('active'));
+  const bnTarget=bnBtn||document.getElementById('bn-'+name);
+  if(bnTarget)bnTarget.classList.add('active');
+  if(!tabBtn){
+    document.querySelectorAll('.tab-btn').forEach(b=>{
+      if(b.textContent.toLowerCase().includes(name==='roast'?'roast':name))b.classList.add('active');
+    });
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── ALERTS ───────────────────────────────────────────
+function createAlert(){
+  const asset=document.getElementById('alertAsset').value;
+  const cond=document.getElementById('alertCond').value;
+  const val=document.getElementById('alertVal').value;
+  if(!val){document.getElementById('alertVal').focus();return;}
+  const row=document.createElement('div');row.className='alert-row';row.style.opacity='0';
+  row.innerHTML=`<span style="font-size:.95rem">🔔</span><span class="alert-text">${asset} — ${cond}</span><span class="alert-val">$${parseFloat(val).toLocaleString()}</span><button class="alert-del" onclick="removeAlert(this)">🗑️</button>`;
+  document.getElementById('alertsList').prepend(row);
+  document.getElementById('alertVal').value='';
+  setTimeout(()=>{row.style.transition='.25s';row.style.opacity='1';},10);
+  showToast(`Alert set for ${asset}! 🔔`);
+}
+function removeAlert(btn){
+  const row=btn.closest('.alert-row');
+  row.style.transition='.2s';row.style.opacity='0';row.style.transform='translateX(20px)';
+  setTimeout(()=>row.remove(),200);
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── CHAT (pre-scripted, always works) ─────────────────
+let personaIdx=0;
+const personas=['🔥 Degen Mode','🦉 Oracle','📚 Teacher','📊 Analyst'];
+
+const replies=[
+  // Degen
+  [
+    "LFG fren! 🚀 Your portfolio is up **▲ 2.71%** today — **SOL** is absolutely mooning at **▲ 8.4%** and carrying the whole bag. BTC is holding strong at $83,200 like the king it is. WAGMI bestie, just HODL and let the gains cook! 🔥",
+    "Bro your bags are looking THICC 💪 **$48,612** total and score is **84/100** — that's not ngmi energy, that's pure WAGMI. Only **MATIC** is being weak at **▼ 2.3%** rn. Ape more BNB and stack those gains fren! 🦍",
+    "Ser your portfolio is built different 👀 **BTC** holding 54% like a true OG hodler. Real alpha? **BNB Earn at 4.8% APY** — why let coins sit when they can be making babies? Gas is 0.8 Gwei rn, super cheap to move. LFG! 🔥",
+    "Ok real talk your **DOT** bag at $141 is giving me anxiety 😭 That's not a position, that's a rounding error. Either ape in more or rotate into **BNB** and let it earn. Your **SOL** though? ABSOLUTELY SENDING. Keep that bag growing fren! 🚀",
+    "WAGMI energy detected! 🚀 Portfolio is up **+$6,840** all time, that's **+16.4%** — you're in PROFIT ser! **SOL** and **BNB** are your strongest bets rn. Just don't sell the top like a weak hand ngmi. Diamond hands only! 💎",
+  ],
+  // Oracle
+  [
+    "Your portfolio reflects the classic cycle behavior — **BTC dominance** at 54% mirrors the early accumulation phase. **SOL's** ▲8.4% surge today echoes the 2020-2021 alt season patterns. Patience and conviction in your core holdings will serve you well through the volatility ahead.",
+    "The ancient wisdom holds: diversification is protection. Your **7-asset** spread is wise, though the **DOT** position at $141 is too small to matter. History shows consolidating small positions into your strongest conviction — **BTC, BNB, SOL** — yields superior returns over 18-month cycles.",
+    "In 2017, those who held through the December peak and survived the 2018 bear emerged 10x stronger. Your **84/100 score** and **▲16.4% all-time P&L** suggest you have the temperament of a long-term holder. **BNB Earn** at 4.8% is the modern equivalent of staking your treasury — wise.",
+    "The market moves in cycles of fear and greed. Today's **▲2.71%** is noise. What matters is your 6-month trajectory. **SOL** and **BNB** are the strongest infrastructure bets of this cycle. Your BTC anchor at 54% is not reckless — it is prudent. Stay the course, young hodler.",
+    "Consolidation creates opportunity. Your **MATIC** position at ▼2.3% tests your conviction. Ask yourself: why did you buy it? If the thesis holds, add. If it has changed, exit with discipline. The wise investor never holds out of stubbornness — only out of understanding.",
+  ],
+  // Teacher
+  [
+    "Great question! 📚 Your portfolio is worth **$48,612** today — that means the total value of all your crypto combined. You're up **▲2.71%** which means for every $100 you had yesterday, you now have $102.71. Your best performer is **SOL (Solana)** which gained **8.4%** today — that's like getting a bonus!",
+    "Let me explain **diversification** — it means spreading your money across different coins so if one drops, others might help. You have **7 different assets** which is good! But 54% is in BTC alone. Think of it like a fruit basket: great to have apples (BTC), but having ONLY apples is risky if apples have a bad season 🍎",
+    "**BNB Earn** is like putting money in a savings account, but better! You earn **4.8% APY** — that means if you put in $1,000 of BNB, after one year you'd have about $1,048 just from earning. The 'flexible' option means you can take your money out anytime, like a normal savings account. Pretty cool right? 😊",
+    "Your **AI Score of 84/100** is calculated from 4 things: how spread out your assets are (diversification), how well they're performing, how risky your portfolio is, and how much BNB you hold. 84 is a solid B+ grade — better than most beginners! The main thing to improve is adding a bit more variety.",
+    "**Gas fees** are small payments you make when you do transactions on a blockchain. Right now BSC gas is **0.8 Gwei** which is VERY cheap — like $0.01 per transaction. This is a great time to move tokens around if you want to rebalance. Think of it like off-peak train tickets — cheaper when it's not busy! 🚂",
+  ],
+  // Analyst
+  [
+    "Portfolio metrics: **$48,612 AUM**, **▲2.71% 24h**, **+16.4% all-time ROI**. BTC dominance at **54.8%** exceeds recommended 40% threshold for a diversified crypto portfolio. SOL outperforming at **▲8.4%** on above-average volume. Recommend trimming BTC 10% and rotating into BNB for yield optimization.",
+    "Risk analysis: **Sharpe ratio** estimated at 1.4 based on current volatility. Correlation coefficient between BTC/ETH holdings is **0.87** — high overlap, limited hedge value. MATIC showing bearish momentum at **▼2.3%** with declining on-chain activity. Recommend reducing MATIC exposure by 30-50%.",
+    "On-chain data: BSC gas at **0.8 Gwei** indicates low network congestion — optimal entry window for BNB staking. BNB Earn flexible APY of **4.8%** represents a **220bps premium** over traditional savings. With 8.5 BNB uninvested, annual yield opportunity cost is approximately **$249.60** at current prices.",
+    "Technical outlook: SOL broke above its 20-day moving average today, confirming **bullish momentum**. BTC consolidating at $83,200 with strong support at $79,000. Portfolio beta estimated at **1.34** versus BTC benchmark — moderate leverage exposure. Score of **84/100** reflects above-average risk-adjusted returns.",
+    "Rebalancing recommendation: Current allocation deviates **14.8%** from optimal Markowitz efficient frontier for crypto portfolios. Suggested target: BTC 40%, ETH 15%, BNB 15%, SOL 12%, LINK 8%, MATIC 6%, DOT 4%. Expected Sharpe improvement: **+0.18**. Execute during low-gas windows like current conditions.",
+  ],
+];
+
+let msgIdx=[0,0,0,0];
+let loading=false;
+
+function fmtAI(t){
+  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/▲\s*([\d.]+%?)/g,'<span class="tag g">▲ $1</span>')
+    .replace(/▼\s*([\d.]+%?)/g,'<span class="tag r">▼ $1</span>')
+    .replace(/\n/g,'<br>');
+}
+function appendMsg(role,html,isHTML){
+  const w=document.getElementById('chatMsgs');
+  const d=document.createElement('div');d.className='msg '+role;
+  const av=document.createElement('div');av.className='msg-av';av.textContent=role==='ai'?'👁️':'👤';
+  const b=document.createElement('div');b.className='msg-bubble';
+  isHTML?b.innerHTML=html:b.textContent=html;
+  d.append(av,b);w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+function showTyping(){
+  const w=document.getElementById('chatMsgs');
+  const d=document.createElement('div');d.className='msg ai';d.id='typing';
+  const av=document.createElement('div');av.className='msg-av';av.textContent='👁️';
+  const b=document.createElement('div');b.className='msg-bubble';
+  b.innerHTML='<div class="typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>';
+  d.append(av,b);w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+function rmTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+
+function sendMsg(override){
+  if(loading)return;
+  const inp=document.getElementById('chatIn');
+  const text=override||inp.value.trim();
+  if(!text)return;
+  inp.value='';inp.style.height='auto';
+  document.getElementById('chips').style.display='none';
+  appendMsg('user',text,false);
+  loading=true;document.getElementById('sendBtn').disabled=true;
+  showTyping();
+
+  // Pick next reply for current persona, cycling through
+  const pool=replies[personaIdx];
+  const reply=pool[msgIdx[personaIdx] % pool.length];
+  msgIdx[personaIdx]++;
+
+  const delay=1000+Math.random()*800;
+  setTimeout(()=>{
+    rmTyping();
+    appendMsg('ai',fmtAI(reply),true);
+    loading=false;document.getElementById('sendBtn').disabled=false;
+  },delay);
+}
+
+function setPersona(btn,label,idx){
+  document.querySelectorAll('.persona-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  personaIdx=idx;
+  document.getElementById('personaLabel').textContent=label;
+  const intros=['Switched to Degen Mode. LFG fren, ask me anything! 🔥','The Oracle is ready. Ask your question, young hodler. 🦉','Hey! I\'m in Teacher Mode. No question is too basic — ask away! 📚','Analyst mode active. Query your portfolio data. 📊'];
+  appendMsg('ai',intros[idx],false);
+}
+
+function sendChip(btn){
+  document.getElementById('chips').style.display='none';
+  sendMsg(btn.textContent.replace(/^..\s*/,'').trim());
+}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,90)+'px';}
+</script>
+</body>
+</html>
